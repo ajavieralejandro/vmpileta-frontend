@@ -23,8 +23,9 @@ export default function GestionTurnos() {
       setTurnos(response.data.data || []);
     } catch (error) {
       toast.error('Error al cargar turnos');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleEliminar = async (turno) => {
@@ -95,13 +96,13 @@ export default function GestionTurnos() {
         </div>
       ) : (
         <div className="space-y-6">
-          {diasOrdenados.map(dia => {
+          {diasOrdenados.map((dia) => {
             const turnosDia = turnosPorDia[dia];
             if (!turnosDia || turnosDia.length === 0) return null;
 
             return (
-              <div 
-                key={dia} 
+              <div
+                key={dia}
                 className={`rounded-lg shadow p-6 ${
                   isDark ? 'bg-slate-900 border border-slate-800' : 'bg-white'
                 }`}
@@ -111,15 +112,16 @@ export default function GestionTurnos() {
                 }`}>
                   {nombresDias[dia]}
                 </h3>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {turnosDia
                     .sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio))
-                    .map(turno => (
-                      <div 
-                        key={turno.id} 
+                    .map((turno) => (
+                      <div
+                        key={turno.id}
                         className={`rounded-lg p-4 hover:shadow-md transition ${
-                          isDark 
-                            ? 'border border-slate-700 bg-slate-800' 
+                          isDark
+                            ? 'border border-slate-700 bg-slate-800'
                             : 'border border-gray-200 bg-white'
                         }`}
                       >
@@ -131,9 +133,9 @@ export default function GestionTurnos() {
                             </span>
                           </div>
                           <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                            turno.activo 
-                              ? isDark 
-                                ? 'bg-green-900 text-green-300' 
+                            turno.activo
+                              ? isDark
+                                ? 'bg-green-900 text-green-300'
                                 : 'bg-green-100 text-green-700'
                               : isDark
                                 ? 'bg-gray-800 text-gray-400'
@@ -144,14 +146,21 @@ export default function GestionTurnos() {
                         </div>
 
                         <div className="space-y-1 text-sm mb-3">
+                          {/* ✅ NUEVO */}
+                          <p className={isDark ? 'text-gray-300' : 'text-gray-700'}>
+                            <strong>Pileta:</strong> {turno.pileta?.nombre || '—'}
+                          </p>
+
                           <p className={isDark ? 'text-gray-300' : 'text-gray-700'}>
                             <strong>Profesor:</strong> {turno.profesor.nombre_completo}
                           </p>
+
                           {turno.nivel && (
                             <p className={isDark ? 'text-gray-300' : 'text-gray-700'}>
                               <strong>Nivel:</strong> {turno.nivel.nombre}
                             </p>
                           )}
+
                           <p className={isDark ? 'text-gray-300' : 'text-gray-700'}>
                             <strong>Cupo:</strong> {turno.cupo_maximo} alumnos
                           </p>

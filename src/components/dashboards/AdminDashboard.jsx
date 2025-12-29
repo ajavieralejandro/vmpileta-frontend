@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import Layout from '../Layout';
-import { Users, Calendar, Layers, UserPlus, UserCheck, DollarSign } from 'lucide-react';
+import { Users, Calendar, Layers, UserPlus, UserCheck, DollarSign, Droplets } from 'lucide-react';
 import GestionProfesores from './admin/GestionProfesores';
 import GestionNiveles from './admin/GestionNiveles';
 import GestionTurnos from './admin/GestionTurnos';
@@ -8,6 +8,7 @@ import SecretariaDashboard from './SecretariaDashboard';
 import GestionUsuariosPendientes from './admin/GestionUsuariosPendientes';
 import useThemeStore from '../../stores/useThemeStore';
 import GestionCuotas from './admin/GestionCuotas';
+import GestionPiletas from './admin/GestionPiletas';
 
 export default function AdminDashboard() {
   const [seccionActiva, setSeccionActiva] = useState('secretaria');
@@ -17,6 +18,10 @@ export default function AdminDashboard() {
   const secciones = [
     { id: 'secretaria', nombre: 'Inscripciones', icono: UserPlus, color: 'primary' },
     { id: 'turnos', nombre: 'Turnos', icono: Calendar, color: 'blue' },
+
+    // ✅ NUEVO
+    { id: 'piletas', nombre: 'Piletas', icono: Droplets, color: 'cyan' },
+
     { id: 'profesores', nombre: 'Profesores', icono: Users, color: 'green' },
     { id: 'niveles', nombre: 'Niveles', icono: Layers, color: 'purple' },
     { id: 'pendientes', nombre: 'Pendientes', icono: UserCheck, color: 'yellow' },
@@ -25,7 +30,6 @@ export default function AdminDashboard() {
 
   const getColorClasses = (color, activa) => {
     if (isDark) {
-      // Modo oscuro
       const darkColors = {
         primary: activa ? 'bg-villamitre-green text-white' : 'text-gray-300 hover:bg-slate-800',
         blue: activa ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-slate-800',
@@ -36,7 +40,6 @@ export default function AdminDashboard() {
       };
       return darkColors[color];
     } else {
-      // Modo claro
       const lightColors = {
         primary: activa ? 'bg-primary-600 text-white' : 'text-gray-700 hover:bg-gray-100',
         blue: activa ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100',
@@ -63,9 +66,11 @@ export default function AdminDashboard() {
         </div>
 
         {/* Navegación de secciones */}
-        <div className={`rounded-lg shadow p-2 flex gap-2 overflow-x-auto ${
-          isDark ? 'bg-slate-900 border border-slate-800' : 'bg-white'
-        }`}>
+        <div
+          className={`rounded-lg shadow p-2 flex gap-2 overflow-x-auto ${
+            isDark ? 'bg-slate-900 border border-slate-800' : 'bg-white'
+          }`}
+        >
           {secciones.map((seccion) => {
             const Icon = seccion.icono;
             const activa = seccionActiva === seccion.id;
@@ -90,6 +95,10 @@ export default function AdminDashboard() {
         <div>
           {seccionActiva === 'secretaria' && <SecretariaDashboard />}
           {seccionActiva === 'turnos' && <GestionTurnos />}
+
+          {/* ✅ NUEVO */}
+          {seccionActiva === 'piletas' && <GestionPiletas />}
+
           {seccionActiva === 'profesores' && <GestionProfesores />}
           {seccionActiva === 'niveles' && <GestionNiveles />}
           {seccionActiva === 'pendientes' && <GestionUsuariosPendientes />}

@@ -7,7 +7,7 @@ const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
-    'Accept': 'application/json',
+    Accept: 'application/json',
   },
 });
 
@@ -46,12 +46,16 @@ export const authAPI = {
 };
 
 // ============================================
-// TURNOS
+// TURNOS (PÚBLICO / GENERAL)
 // ============================================
 export const turnosAPI = {
   getAll: (params) => api.get('/turnos', { params }),
   getById: (id) => api.get(`/turnos/${id}`),
   getPorDias: (dias) => api.get('/turnos', { params: { dias: dias.join(',') } }),
+  getInscripciones: (turnoId) => api.get(`/turnos/${turnoId}/inscripciones`),
+
+  // ✅ nuevas (Modelo A)
+  getClases: (turnoId) => api.get(`/turnos/${turnoId}/clases`),
 };
 
 // ============================================
@@ -60,6 +64,8 @@ export const turnosAPI = {
 export const inscripcionesAPI = {
   crear: (data) => api.post('/inscripciones', data),
   eliminar: (id) => api.delete(`/inscripciones/${id}`),
+
+  // OJO: esta ruta existe en tu backend como /turnos/{id}/inscripciones (TurnoController)
   getPorTurno: (turnoId) => api.get(`/turnos/${turnoId}/inscripciones`),
 };
 
@@ -76,10 +82,8 @@ export const alumnosAPI = {
 // ASISTENCIAS
 // ============================================
 export const asistenciasAPI = {
-  registrar: (claseId, asistencias) => 
-    api.post(`/clases/${claseId}/asistencias`, { asistencias }),
-  getPorTurno: (turnoId, mes, anio) => 
-    api.get(`/turnos/${turnoId}/asistencias`, { params: { mes, anio } }),
+  registrar: (claseId, asistencias) => api.post(`/clases/${claseId}/asistencias`, { asistencias }),
+  getPorTurno: (turnoId, mes, anio) => api.get(`/turnos/${turnoId}/asistencias`, { params: { mes, anio } }),
 };
 
 // ============================================
@@ -96,10 +100,8 @@ export const cambiosNivelAPI = {
 // PASES LIBRE (para clientes)
 // ============================================
 export const pasesLibreAPI = {
-  getTurnosDisponibles: (fecha) => 
-    api.get('/pases-libre/disponibles', { params: { fecha } }),
-  reservar: (turnoId, fecha) => 
-    api.post('/pases-libre', { turno_id: turnoId, fecha }),
+  getTurnosDisponibles: (fecha) => api.get('/pases-libre/disponibles', { params: { fecha } }),
+  reservar: (turnoId, fecha) => api.post('/pases-libre', { turno_id: turnoId, fecha }),
   getMisReservas: () => api.get('/pases-libre/mis-reservas'),
   cancelar: (id) => api.delete(`/pases-libre/${id}`),
 };
@@ -113,12 +115,21 @@ export const estadoCuentaAPI = {
 };
 
 // ============================================
-// NOTIFICACIONES
+// NOTIFICACIONES (ajustado a tu backend actual)
+// Backend actual:
+// GET /notificaciones
+// PUT /notificaciones/{id}/leida
+// PUT /notificaciones/marcar-todas-leidas
+// DELETE /notificaciones/{id}
+// DELETE /notificaciones/limpiar-leidas
 // ============================================
 export const notificacionesAPI = {
   getAll: () => api.get('/notificaciones'),
-  marcarLeida: (id) => api.post(`/notificaciones/${id}/leer`),
-  marcarTodasLeidas: () => api.post('/notificaciones/leer-todas'),
+  contarNoLeidas: () => api.get('/notificaciones/no-leidas'),
+  marcarLeida: (id) => api.put(`/notificaciones/${id}/leida`),
+  marcarTodasLeidas: () => api.put('/notificaciones/marcar-todas-leidas'),
+  eliminar: (id) => api.delete(`/notificaciones/${id}`),
+  limpiarLeidas: () => api.delete('/notificaciones/limpiar-leidas'),
 };
 
 // ============================================
@@ -142,11 +153,26 @@ export const nivelesAPI = {
 };
 
 // ============================================
+// PILETAS (ADMIN)
+// ============================================
+export const piletasAPI = {
+  getAll: () => api.get('/piletas'),
+  create: (data) => api.post('/piletas', data),
+  update: (id, data) => api.put(`/piletas/${id}`, data),
+  delete: (id) => api.delete(`/piletas/${id}`),
+};
+
+// ============================================
 // TURNOS ADMIN
 // ============================================
 export const turnosAdminAPI = {
   create: (data) => api.post('/turnos', data),
   update: (id, data) => api.put(`/turnos/${id}`, data),
   delete: (id) => api.delete(`/turnos/${id}`),
+
+  // ✅ nuevas (Modelo A)
+  generarClases: (turnoId, payload) => api.post(`/turnos/${turnoId}/generar-clases`, payload),
+  getClases: (turnoId) => api.get(`/turnos/${turnoId}/clases`),
 };
+
 export default api;
