@@ -40,9 +40,7 @@ export default function ModalTurno({ turno, onClose, onSuccess }) {
         dia_semana: turno.dia_semana || 'lunes',
       });
     } else {
-      // si es nuevo, resetea pero mantiene defaults
-      setForm((prev) => ({
-        ...prev,
+      setForm({
         profesor_id: '',
         nivel_id: '',
         pileta_id: '',
@@ -50,7 +48,7 @@ export default function ModalTurno({ turno, onClose, onSuccess }) {
         hora_fin: '',
         cupo_maximo: '15',
         dia_semana: 'lunes',
-      }));
+      });
       setGen({ fecha_desde: '', fecha_hasta: '' });
     }
   }, [turno]);
@@ -63,9 +61,15 @@ export default function ModalTurno({ turno, onClose, onSuccess }) {
         piletasAPI.getAll(),
       ]);
 
-      setProfesores(profResponse.data.data || []);
-      setNiveles(nivResponse.data.data || []);
-      setPiletas(pilResponse.data.data || []);
+      setProfesores(profResponse.data?.data || []);
+      setNiveles(nivResponse.data?.data || []);
+
+      // ✅ Soporta ambos formatos:
+      // - array pelado: [{...}]
+      // - objeto: { success: true, data: [...] }
+      const pilData = pilResponse.data;
+      const listaPiletas = Array.isArray(pilData) ? pilData : (pilData?.data || []);
+      setPiletas(listaPiletas);
     } catch (error) {
       toast.error('Error al cargar datos');
     }
@@ -78,10 +82,10 @@ export default function ModalTurno({ turno, onClose, onSuccess }) {
     try {
       const data = {
         ...form,
-        profesor_id: parseInt(form.profesor_id),
-        nivel_id: form.nivel_id ? parseInt(form.nivel_id) : null,
-        pileta_id: parseInt(form.pileta_id),
-        cupo_maximo: parseInt(form.cupo_maximo),
+        profesor_id: parseInt(form.profesor_id, 10),
+        nivel_id: form.nivel_id ? parseInt(form.nivel_id, 10) : null,
+        pileta_id: parseInt(form.pileta_id, 10),
+        cupo_maximo: parseInt(form.cupo_maximo, 10),
       };
 
       if (turno) {
@@ -115,8 +119,7 @@ export default function ModalTurno({ turno, onClose, onSuccess }) {
         fecha_hasta: gen.fecha_hasta,
       });
       toast.success('Clases generadas');
-      // opcional: refrescar listado, o simplemente avisar
-      onSuccess(); // si tu listado de turnos refresca, sirve
+      onSuccess();
     } catch (error) {
       toast.error(error.response?.data?.message || 'Error al generar clases');
     } finally {
@@ -149,10 +152,12 @@ export default function ModalTurno({ turno, onClose, onSuccess }) {
               <option value="">Seleccionar pileta</option>
               {piletas.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.nombre} {p.activa === false ? '(inactiva)' : ''}
+                  {/* ✅ activa viene como 1/0 (number) en tu API */}
+                  {p.nombre} {Number(p.activa) === 0 ? '(inactiva)' : ''}
                 </option>
               ))}
             </select>
+
             <p className="text-xs text-gray-500 mt-1">
               El backend valida solapamientos por pileta + día + horario.
             </p>
