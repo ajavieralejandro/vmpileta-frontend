@@ -20,7 +20,14 @@ export default function ModalTurno({ turno, onClose, onSuccess }) {
     dia_semana: 'lunes',
   });
 
-  // Generar clases (solo en edición)
+  // ✅ Generación automática al crear (nuevo)
+  const [autoGen, setAutoGen] = useState({
+    enabled: true, // default: sí, para que “pegue” el flujo que querés
+    fecha_desde: '',
+    fecha_hasta: '',
+  });
+
+  // Generar clases manual (solo en edición, mantiene tu feature)
   const [gen, setGen] = useState({ fecha_desde: '', fecha_hasta: '' });
   const [genLoading, setGenLoading] = useState(false);
 
@@ -39,6 +46,10 @@ export default function ModalTurno({ turno, onClose, onSuccess }) {
         cupo_maximo: turno.cupo_maximo || '15',
         dia_semana: turno.dia_semana || 'lunes',
       });
+
+      // en edición no usamos autogeneración, queda el bloque manual
+      setAutoGen({ enabled: false, fecha_desde: '', fecha_hasta: '' });
+      setGen({ fecha_desde: '', fecha_hasta: '' });
     } else {
       setForm({
         profesor_id: '',
@@ -49,6 +60,14 @@ export default function ModalTurno({ turno, onClose, onSuccess }) {
         cupo_maximo: '15',
         dia_semana: 'lunes',
       });
+
+      // default: autogenerar habilitado para “Nuevo Turno”
+      setAutoGen((prev) => ({
+        enabled: true,
+        fecha_desde: prev.fecha_desde || '',
+        fecha_hasta: prev.fecha_hasta || '',
+      }));
+
       setGen({ fecha_desde: '', fecha_hasta: '' });
     }
   }, [turno]);
@@ -68,7 +87,7 @@ export default function ModalTurno({ turno, onClose, onSuccess }) {
       // - array pelado: [{...}]
       // - objeto: { success: true, data: [...] }
       const pilData = pilResponse.data;
-      const listaPiletas = Array.isArray(pilData) ? pilData : (pilData?.data || []);
+      const listaPiletas = Array.isArray(pilData) ? pilData : pilData?.data || [];
       setPiletas(listaPiletas);
     } catch (error) {
       toast.error('Error al cargar datos');
@@ -77,6 +96,19 @@ export default function ModalTurno({ turno, onClose, onSuccess }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // ✅ si es nuevo y autogenerar está activo, validamos fechas en el frontend (mejor UX)
+    if (!turno?.id && autoGen.enabled) {
+      if (!autoGen.fecha_desde || !autoGen.fecha_hasta) {
+        toast.error('Completá "Desde" y "Hasta" para generar clases');
+        return;
+      }
+      if (autoGen.fecha_desde > autoGen.fecha_hasta) {
+        toast.error('"Hasta" debe ser mayor o igual a "Desde"');
+        return;
+      }
+    }
+
     setLoading(true);
 
     try {
@@ -86,6 +118,17 @@ export default function ModalTurno({ turno, onClose, onSuccess }) {
         nivel_id: form.nivel_id ? parseInt(form.nivel_id, 10) : null,
         pileta_id: parseInt(form.pileta_id, 10),
         cupo_maximo: parseInt(form.cupo_maximo, 10),
+
+        // ✅ NUEVO: si está creando y el switch está on, mandamos flags
+        ...(turno?.id
+          ? {}
+          : autoGen.enabled
+            ? {
+                generar_clases: true,
+                fecha_desde: autoGen.fecha_desde,
+                fecha_hasta: autoGen.fecha_hasta,
+              }
+            : {}),
       };
 
       if (turno) {
@@ -93,7 +136,7 @@ export default function ModalTurno({ turno, onClose, onSuccess }) {
         toast.success('Turno actualizado');
       } else {
         await turnosAdminAPI.create(data);
-        toast.success('Turno creado');
+        toast.success(autoGen.enabled ? 'Turno creado + clases generadas' : 'Turno creado');
       }
 
       onSuccess();
@@ -111,6 +154,10 @@ export default function ModalTurno({ turno, onClose, onSuccess }) {
       toast.error('Completá fecha desde y hasta');
       return;
     }
+    if (gen.fecha_desde > gen.fecha_hasta) {
+      toast.error('"Hasta" debe ser mayor o igual a "Desde"');
+      return;
+    }
 
     setGenLoading(true);
     try {
@@ -126,6 +173,8 @@ export default function ModalTurno({ turno, onClose, onSuccess }) {
       setGenLoading(false);
     }
   };
+
+  const isCrear = !turno?.id;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -152,7 +201,6 @@ export default function ModalTurno({ turno, onClose, onSuccess }) {
               <option value="">Seleccionar pileta</option>
               {piletas.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {/* ✅ activa viene como 1/0 (number) en tu API */}
                   {p.nombre} {Number(p.activa) === 0 ? '(inactiva)' : ''}
                 </option>
               ))}
@@ -255,7 +303,50 @@ export default function ModalTurno({ turno, onClose, onSuccess }) {
             />
           </div>
 
-          {/* Generar clases (solo si existe turno) */}
+          {/* ✅ NUEVO: Generar clases al crear (dos calendarios) */}
+          {isCrear && (
+            <div className="mt-2 p-4 border border-gray-200 rounded-lg bg-gray-50">
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-800">
+                <input
+                  type="checkbox"
+                  checked={autoGen.enabled}
+                  onChange={(e) => setAutoGen((s) => ({ ...s, enabled: e.target.checked }))}
+                />
+                Generar clases automáticamente al crear
+              </label>
+
+              {autoGen.enabled && (
+                <>
+                  <div className="mt-3 grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Desde</label>
+                      <input
+                        type="date"
+                        value={autoGen.fecha_desde}
+                        onChange={(e) => setAutoGen((s) => ({ ...s, fecha_desde: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Hasta</label>
+                      <input
+                        type="date"
+                        value={autoGen.fecha_hasta}
+                        onChange={(e) => setAutoGen((s) => ({ ...s, fecha_hasta: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-gray-500 mt-2">
+                    Se crearán clases para el día del turno dentro del rango. No duplica (unique turno+fecha).
+                  </p>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Generar clases manual (solo si existe turno) */}
           {turno?.id && (
             <div className="mt-2 p-4 border border-gray-200 rounded-lg bg-gray-50">
               <h3 className="text-sm font-semibold text-gray-800 mb-2">Generar clases (por rango)</h3>
