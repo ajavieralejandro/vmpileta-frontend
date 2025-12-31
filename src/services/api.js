@@ -56,6 +56,8 @@ export const turnosAPI = {
 
   // ✅ nuevas (Modelo A)
   getClases: (turnoId) => api.get(`/turnos/${turnoId}/clases`),
+    // ✅ NUEVO: tabs por nivel
+  getPorNiveles: () => api.get('/turnos/por-niveles'),
 };
 
 // ============================================
@@ -95,6 +97,7 @@ export const cambiosNivelAPI = {
   aprobar: (id) => api.post(`/cambios-nivel/${id}/aprobar`),
   rechazar: (id) => api.post(`/cambios-nivel/${id}/rechazar`),
 };
+
 
 // ============================================
 // PASES LIBRE (para clientes)
@@ -167,12 +170,17 @@ export const piletasAPI = {
 // ============================================
 export const turnosAdminAPI = {
   create: (data) => api.post('/turnos', data),
-  update: (id, data) => api.put(`/turnos/${id}`, data),
+  update: (id, data) => api.put(`/turnos/${id}`, data),       // editar completo
+  patch: (id, data) => api.patch(`/turnos/${id}`, data),      // ✅ toggle activo, cambios parciales
   delete: (id) => api.delete(`/turnos/${id}`),
 
-  // ✅ nuevas (Modelo A)
   generarClases: (turnoId, payload) => api.post(`/turnos/${turnoId}/generar-clases`, payload),
   getClases: (turnoId) => api.get(`/turnos/${turnoId}/clases`),
 };
+export const exportsAPI = {
+  inscriptosTurnoExcel: (turnoId) =>
+    api.get(`/turnos/${turnoId}/inscriptos/excel`, { responseType: 'blob' }),
+};
+
 
 export default api;
