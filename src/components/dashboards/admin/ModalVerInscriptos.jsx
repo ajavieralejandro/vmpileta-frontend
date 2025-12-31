@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { X, UserMinus, Users, FileSpreadsheet } from 'lucide-react';
-import { inscripcionesAPI, exportsAPI } from '../../../services/api';
+import { inscripcionesAPI } from '../../../services/api';
 import toast from 'react-hot-toast';
 
 export default function ModalVerInscriptos({ turno, onClose, onRecargar }) {
@@ -8,22 +8,38 @@ export default function ModalVerInscriptos({ turno, onClose, onRecargar }) {
   const [loading, setLoading] = useState(true);
   const [downloadingExcel, setDownloadingExcel] = useState(false);
 
+  // ✅ blindaje: pase lo que pase, el render usa un array
+  const inscriptosArray = Array.isArray(inscriptos)
+    ? inscriptos
+    : (inscriptos?.inscripciones ?? []);
+
   useEffect(() => {
     cargarInscriptos();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const activosCount = useMemo(
-    () => inscriptos.filter(i => i.estado === 'activo').length,
-    [inscriptos]
+    () => inscriptosArray.filter(i => i.estado === 'activo').length,
+    [inscriptosArray]
   );
+
+  const excelUrl = useMemo(() => {
+    // si tu backend es https://vmpiletas.surtekbb.com/api ...
+    // ojo: esto depende de tu infraestructura. Si estás en localhost, dejalo ABSOLUTO:
+    return `https://vmpiletas.surtekbb.com/api/turnos/${turno.id}/inscriptos/excel`;
+  }, [turno.id]);
 
   const cargarInscriptos = async () => {
     try {
-      const response = await inscripcionesAPI.getPorTurno(turno.id);
-      setInscriptos(response.data.data || []);
+      const res = await inscripcionesAPI.getPorTurno(turno.id);
+
+      const payload = res.data?.data;
+      const lista = Array.isArray(payload) ? payload : (payload?.inscripciones ?? []);
+
+      setInscriptos(lista);
     } catch (error) {
       toast.error('Error al cargar inscriptos');
+      setInscriptos([]);
     } finally {
       setLoading(false);
     }
@@ -45,30 +61,8 @@ export default function ModalVerInscriptos({ turno, onClose, onRecargar }) {
   const descargarExcel = async () => {
     try {
       setDownloadingExcel(true);
-
-      const res = await exportsAPI.inscriptosTurnoExcel(turno.id);
-
-      const contentType =
-        res.headers?.['content-type'] ||
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-
-      const blob = new Blob([res.data], { type: contentType });
-
-      const cd = res.headers?.['content-disposition'];
-      const filename =
-        cd?.match(/filename\*?=(?:UTF-8'')?["']?([^"';]+)["']?/i)?.[1] ||
-        `inscriptos_turno_${turno.id}.xlsx`;
-
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = decodeURIComponent(filename);
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-
-      toast.success('Excel descargado');
+      window.open(excelUrl, '_blank', 'noopener,noreferrer');
+      toast.success('Descarga iniciada');
     } catch (e) {
       toast.error('No se pudo descargar el Excel');
     } finally {
@@ -89,12 +83,9 @@ export default function ModalVerInscriptos({ turno, onClose, onRecargar }) {
 
             <div className="flex items-center space-x-2 mt-2">
               <Users size={16} className="text-gray-500" />
-              <span className="text-sm text-gray-600">
-                {activosCount} inscriptos activos
-              </span>
+              <span className="text-sm text-gray-600">{activosCount} inscriptos activos</span>
             </div>
 
-            {/* Acciones */}
             <div className="mt-3 flex gap-2">
               <button
                 onClick={descargarExcel}
@@ -120,14 +111,14 @@ export default function ModalVerInscriptos({ turno, onClose, onRecargar }) {
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
               <p className="text-gray-600 mt-4">Cargando...</p>
             </div>
-          ) : inscriptos.length === 0 ? (
+          ) : inscriptosArray.length === 0 ? (
             <div className="text-center py-12">
               <Users className="mx-auto text-gray-400 mb-4" size={48} />
               <p className="text-gray-600">No hay alumnos inscriptos en este turno</p>
             </div>
           ) : (
             <div className="space-y-2">
-              {inscriptos.map((inscripcion) => (
+              {inscriptosArray.map((inscripcion) => (
                 <div
                   key={inscripcion.id}
                   className={`flex justify-between items-center p-4 rounded-lg transition ${
@@ -138,10 +129,10 @@ export default function ModalVerInscriptos({ turno, onClose, onRecargar }) {
                 >
                   <div>
                     <p className="font-semibold text-gray-800">
-                      {inscripcion.alumno.nombre_completo}
+                      {inscripcion.alumno?.nombre_completo ?? 'Sin nombre'}
                     </p>
                     <p className="text-sm text-gray-600">
-                      DNI: {inscripcion.alumno.dni} | Tel: {inscripcion.alumno.telefono}
+                      DNI: {inscripcion.alumno?.dni ?? '—'} | Tel: {inscripcion.alumno?.telefono ?? '—'}
                     </p>
 
                     {inscripcion.pase_libre && (
@@ -159,7 +150,9 @@ export default function ModalVerInscriptos({ turno, onClose, onRecargar }) {
 
                   {inscripcion.estado === 'activo' && (
                     <button
-                      onClick={() => darDeBaja(inscripcion.id, inscripcion.alumno.nombre_completo)}
+                      onClick={() =>
+                        darDeBaja(inscripcion.id, inscripcion.alumno?.nombre_completo ?? 'este alumno')
+                      }
                       className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition flex items-center space-x-2"
                     >
                       <UserMinus size={18} />
