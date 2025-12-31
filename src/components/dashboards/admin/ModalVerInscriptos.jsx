@@ -8,38 +8,58 @@ export default function ModalVerInscriptos({ turno, onClose, onRecargar }) {
   const [loading, setLoading] = useState(true);
   const [downloadingExcel, setDownloadingExcel] = useState(false);
 
-  // ✅ blindaje: pase lo que pase, el render usa un array
-  const inscriptosArray = Array.isArray(inscriptos)
-    ? inscriptos
-    : (inscriptos?.inscripciones ?? []);
+  // ✅ Función auxiliar para asegurar que siempre obtenemos un array
+  const asegurarArray = (data) => {
+    if (Array.isArray(data)) return data;
+    if (data && data.inscripciones && Array.isArray(data.inscripciones)) return data.inscripciones;
+    if (data && Array.isArray(data.data)) return data.data;
+    if (data && data.data && Array.isArray(data.data.inscripciones)) return data.data.inscripciones;
+    return [];
+  };
+
+  // ✅ Inicializamos inscriptosArray inmediatamente
+  const inscriptosArray = useMemo(() => {
+    return asegurarArray(inscriptos);
+  }, [inscriptos]);
 
   useEffect(() => {
     cargarInscriptos();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ✅ Ahora seguro que inscriptosArray es un array
   const activosCount = useMemo(
     () => inscriptosArray.filter(i => i.estado === 'activo').length,
     [inscriptosArray]
   );
 
   const excelUrl = useMemo(() => {
-    // si tu backend es https://vmpiletas.surtekbb.com/api ...
-    // ojo: esto depende de tu infraestructura. Si estás en localhost, dejalo ABSOLUTO:
     return `https://vmpiletas.surtekbb.com/api/turnos/${turno.id}/inscriptos/excel`;
   }, [turno.id]);
 
   const cargarInscriptos = async () => {
     try {
       const res = await inscripcionesAPI.getPorTurno(turno.id);
+      
+      // Debug para ver la estructura real
+      console.log('Estructura de respuesta:', {
+        res,
+        data: res.data,
+        dataData: res.data?.data,
+        tipoData: typeof res.data?.data,
+        esArray: Array.isArray(res.data?.data)
+      });
 
-      const payload = res.data?.data;
-      const lista = Array.isArray(payload) ? payload : (payload?.inscripciones ?? []);
-
+      // Extraer el array de inscriptos
+      const lista = asegurarArray(res.data || res);
+      
+      console.log('Lista procesada:', lista);
+      
       setInscriptos(lista);
     } catch (error) {
+      console.error('Error detallado:', error);
       toast.error('Error al cargar inscriptos');
-      setInscriptos([]);
+      setInscriptos([]); // Siempre establecer un array vacío
     } finally {
       setLoading(false);
     }
@@ -69,6 +89,14 @@ export default function ModalVerInscriptos({ turno, onClose, onRecargar }) {
       setDownloadingExcel(false);
     }
   };
+
+  // ✅ Debug adicional: mostrar el tipo de inscriptosArray
+  console.log('Render - inscriptosArray:', {
+    tipo: typeof inscriptosArray,
+    esArray: Array.isArray(inscriptosArray),
+    longitud: inscriptosArray?.length || 0,
+    valor: inscriptosArray
+  });
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -120,7 +148,7 @@ export default function ModalVerInscriptos({ turno, onClose, onRecargar }) {
             <div className="space-y-2">
               {inscriptosArray.map((inscripcion) => (
                 <div
-                  key={inscripcion.id}
+                  key={inscripcion.id || Math.random()} // Agregado fallback para key
                   className={`flex justify-between items-center p-4 rounded-lg transition ${
                     inscripcion.estado === 'activo'
                       ? 'bg-green-50 border border-green-200'
