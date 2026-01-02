@@ -10,6 +10,10 @@ export default function GestionTurnos() {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [turnoEditar, setTurnoEditar] = useState(null);
+
+  // ✅ NUEVO: loading por turno para toggle activo/inactivo
+  const [togglingId, setTogglingId] = useState(null);
+
   const theme = useThemeStore((state) => state.theme);
   const isDark = theme === 'dark';
 
@@ -37,6 +41,27 @@ export default function GestionTurnos() {
       cargarTurnos();
     } catch (error) {
       toast.error('Error al eliminar turno');
+    }
+  };
+
+  // ✅ NUEVO: activar/inactivar usando PATCH /turnos/{id}/toggle-activo
+  const handleToggleActivo = async (turno) => {
+    if (!confirm(`¿Marcar turno como ${turno.activo ? 'INACTIVO' : 'ACTIVO'}?`)) return;
+
+    try {
+      setTogglingId(turno.id);
+
+      // usa tu ruta existente
+      await turnosAdminAPI.toggleActivo(turno.id);
+
+      // simple y seguro: recargar todo desde backend
+      await cargarTurnos();
+
+      toast.success(`Turno ${turno.activo ? 'desactivado' : 'activado'}`);
+    } catch (error) {
+      toast.error('Error al cambiar estado del turno');
+    } finally {
+      setTogglingId(null);
     }
   };
 
@@ -146,7 +171,6 @@ export default function GestionTurnos() {
                         </div>
 
                         <div className="space-y-1 text-sm mb-3">
-                          {/* ✅ NUEVO */}
                           <p className={isDark ? 'text-gray-300' : 'text-gray-700'}>
                             <strong>Pileta:</strong> {turno.pileta?.nombre || '—'}
                           </p>
@@ -181,6 +205,24 @@ export default function GestionTurnos() {
                             <Edit size={14} />
                             <span>Editar</span>
                           </button>
+
+                          {/* ✅ NUEVO: Activar/Inactivar */}
+                          <button
+                            disabled={togglingId === turno.id}
+                            onClick={() => handleToggleActivo(turno)}
+                            className={`flex-1 flex items-center justify-center px-3 py-2 rounded text-sm transition ${
+                              turno.activo
+                                ? (isDark
+                                    ? 'bg-amber-900 hover:bg-amber-800 text-amber-300'
+                                    : 'bg-amber-50 hover:bg-amber-100 text-amber-700')
+                                : (isDark
+                                    ? 'bg-green-900 hover:bg-green-800 text-green-300'
+                                    : 'bg-green-50 hover:bg-green-100 text-green-700')
+                            } ${togglingId === turno.id ? 'opacity-60 cursor-not-allowed' : ''}`}
+                          >
+                            {togglingId === turno.id ? '...' : (turno.activo ? 'Inactivar' : 'Activar')}
+                          </button>
+
                           <button
                             onClick={() => handleEliminar(turno)}
                             className={`flex items-center justify-center px-3 py-2 rounded ${

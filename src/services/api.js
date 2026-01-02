@@ -81,6 +81,8 @@ export const inscripcionesAPI = {
 
 // ALUMNOS
 export const alumnosAPI = {
+    getAll: (params) => api.get('/alumnos', { params }),
+
   crear: (data) => api.post('/alumnos', data),
   buscar: (query) => api.get('/alumnos', { params: { search: query } }),
   getInasistentes: () => api.get('/alumnos/inasistentes'),
@@ -156,6 +158,8 @@ export const turnosAdminAPI = {
   delete: (id) => api.delete(`/turnos/${id}`),
   generarClases: (turnoId, payload) => api.post(`/turnos/${turnoId}/generar-clases`, payload),
   getClases: (turnoId) => api.get(`/turnos/${turnoId}/clases`),
+    toggleActivo: (id) => api.patch(`/turnos/${id}/toggle-activo`),
+
 };
 
 // EXPORTS

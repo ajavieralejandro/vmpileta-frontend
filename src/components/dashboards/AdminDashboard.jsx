@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import Layout from '../Layout';
-import { Users, Calendar, Layers, UserPlus, UserCheck, DollarSign, Droplets } from 'lucide-react';
+import {
+  Users, Calendar, Layers, UserPlus, UserCheck, DollarSign, Droplets, GraduationCap
+} from 'lucide-react';
+
 import GestionProfesores from './admin/GestionProfesores';
 import GestionNiveles from './admin/GestionNiveles';
 import GestionTurnos from './admin/GestionTurnos';
@@ -9,6 +12,9 @@ import GestionUsuariosPendientes from './admin/GestionUsuariosPendientes';
 import useThemeStore from '../../stores/useThemeStore';
 import GestionCuotas from './admin/GestionCuotas';
 import GestionPiletas from './admin/GestionPiletas';
+
+// ✅ NUEVO
+import GestionAlumnos from './admin/alumnos/GestionAlumnos';
 
 export default function AdminDashboard() {
   const [seccionActiva, setSeccionActiva] = useState('secretaria');
@@ -19,7 +25,9 @@ export default function AdminDashboard() {
     { id: 'secretaria', nombre: 'Inscripciones', icono: UserPlus, color: 'primary' },
     { id: 'turnos', nombre: 'Turnos', icono: Calendar, color: 'blue' },
 
-    // ✅ NUEVO
+    // ✅ NUEVO: ALUMNOS
+    { id: 'alumnos', nombre: 'Alumnos', icono: GraduationCap, color: 'cyan' },
+
     { id: 'piletas', nombre: 'Piletas', icono: Droplets, color: 'cyan' },
 
     { id: 'profesores', nombre: 'Profesores', icono: Users, color: 'green' },
@@ -55,7 +63,6 @@ export default function AdminDashboard() {
   return (
     <Layout>
       <div className="space-y-6">
-        {/* Header */}
         <div>
           <h1 className={`text-3xl font-bold ${isDark ? 'text-white' : 'text-gray-800'}`}>
             Panel de Gestión
@@ -65,7 +72,6 @@ export default function AdminDashboard() {
           </p>
         </div>
 
-        {/* Navegación de secciones */}
         <div
           className={`rounded-lg shadow p-2 flex gap-2 overflow-x-auto ${
             isDark ? 'bg-slate-900 border border-slate-800' : 'bg-white'
@@ -91,12 +97,13 @@ export default function AdminDashboard() {
           })}
         </div>
 
-        {/* Contenido de la sección activa */}
         <div>
           {seccionActiva === 'secretaria' && <SecretariaDashboard />}
           {seccionActiva === 'turnos' && <GestionTurnos />}
 
           {/* ✅ NUEVO */}
+          {seccionActiva === 'alumnos' && <GestionAlumnos />}
+
           {seccionActiva === 'piletas' && <GestionPiletas />}
 
           {seccionActiva === 'profesores' && <GestionProfesores />}
