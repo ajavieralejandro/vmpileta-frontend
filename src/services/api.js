@@ -2,7 +2,6 @@ import axios from 'axios';
 
 const API_BASE_URL = 'https://vmpiletas.surtekbb.com/api';
 
-// Crear instancia de axios
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -11,19 +10,15 @@ const api = axios.create({
   },
 });
 
-// Agregar token en cada request
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('auth_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+    if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// Manejar errores de autenticación
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -36,61 +31,68 @@ api.interceptors.response.use(
   }
 );
 
-// ============================================
 // AUTH
-// ============================================
 export const authAPI = {
   login: (dni, password) => api.post('/login', { dni, password }),
   logout: () => api.post('/logout'),
   me: () => api.get('/me'),
 };
 
-// ============================================
-// TURNOS (PÚBLICO / GENERAL)
-// ============================================
+// TURNOS
 export const turnosAPI = {
   getAll: (params) => api.get('/turnos', { params }),
   getById: (id) => api.get(`/turnos/${id}`),
   getPorDias: (dias) => api.get('/turnos', { params: { dias: dias.join(',') } }),
   getInscripciones: (turnoId) => api.get(`/turnos/${turnoId}/inscripciones`),
-
-  // ✅ nuevas (Modelo A)
   getClases: (turnoId) => api.get(`/turnos/${turnoId}/clases`),
-    // ✅ NUEVO: tabs por nivel
   getPorNiveles: () => api.get('/turnos/por-niveles'),
 };
 
-// ============================================
 // INSCRIPCIONES
-// ============================================
 export const inscripcionesAPI = {
   crear: (data) => api.post('/inscripciones', data),
   eliminar: (id) => api.delete(`/inscripciones/${id}`),
 
-  // OJO: esta ruta existe en tu backend como /turnos/{id}/inscripciones (TurnoController)
-  getPorTurno: (turnoId) => api.get(`/turnos/${turnoId}/inscripciones`),
+  // Devuelve la response de axios (para debug o si necesitás el payload completo)
+  getPorTurnoRaw: (turnoId) => api.get(`/turnos/${turnoId}/inscripciones`),
+
+  // Devuelve SIEMPRE array (ideal para UI)
+  getPorTurno: async (turnoId) => {
+    const res = await api.get(`/turnos/${turnoId}/inscripciones`);
+    const lista =
+      res?.data?.data?.inscripciones ??
+      res?.data?.inscripciones ??
+      res?.data?.data ??
+      res?.data ??
+      [];
+    return Array.isArray(lista) ? lista : [];
+  },
+
+  // Devuelve { turno, inscripciones }
+  getPorTurnoDetallado: async (turnoId) => {
+    const res = await api.get(`/turnos/${turnoId}/inscripciones`);
+    const data = res?.data?.data ?? {};
+    return {
+      turno: data?.turno ?? null,
+      inscripciones: Array.isArray(data?.inscripciones) ? data.inscripciones : [],
+    };
+  },
 };
 
-// ============================================
 // ALUMNOS
-// ============================================
 export const alumnosAPI = {
   crear: (data) => api.post('/alumnos', data),
   buscar: (query) => api.get('/alumnos', { params: { search: query } }),
   getInasistentes: () => api.get('/alumnos/inasistentes'),
 };
 
-// ============================================
 // ASISTENCIAS
-// ============================================
 export const asistenciasAPI = {
   registrar: (claseId, asistencias) => api.post(`/clases/${claseId}/asistencias`, { asistencias }),
   getPorTurno: (turnoId, mes, anio) => api.get(`/turnos/${turnoId}/asistencias`, { params: { mes, anio } }),
 };
 
-// ============================================
-// CAMBIOS DE NIVEL
-// ============================================
+// CAMBIOS NIVEL
 export const cambiosNivelAPI = {
   getPendientes: () => api.get('/cambios-nivel/pendientes'),
   sugerir: (data) => api.post('/cambios-nivel', data),
@@ -98,10 +100,7 @@ export const cambiosNivelAPI = {
   rechazar: (id) => api.post(`/cambios-nivel/${id}/rechazar`),
 };
 
-
-// ============================================
-// PASES LIBRE (para clientes)
-// ============================================
+// PASES LIBRE
 export const pasesLibreAPI = {
   getTurnosDisponibles: (fecha) => api.get('/pases-libre/disponibles', { params: { fecha } }),
   reservar: (turnoId, fecha) => api.post('/pases-libre', { turno_id: turnoId, fecha }),
@@ -109,23 +108,13 @@ export const pasesLibreAPI = {
   cancelar: (id) => api.delete(`/pases-libre/${id}`),
 };
 
-// ============================================
-// ESTADO DE CUENTA (para clientes)
-// ============================================
+// ESTADO CUENTA
 export const estadoCuentaAPI = {
   getMiEstado: () => api.get('/mi-estado-cuenta'),
   getMovimientos: () => api.get('/mi-estado-cuenta/movimientos'),
 };
 
-// ============================================
-// NOTIFICACIONES (ajustado a tu backend actual)
-// Backend actual:
-// GET /notificaciones
-// PUT /notificaciones/{id}/leida
-// PUT /notificaciones/marcar-todas-leidas
-// DELETE /notificaciones/{id}
-// DELETE /notificaciones/limpiar-leidas
-// ============================================
+// NOTIFICACIONES
 export const notificacionesAPI = {
   getAll: () => api.get('/notificaciones'),
   contarNoLeidas: () => api.get('/notificaciones/no-leidas'),
@@ -135,9 +124,7 @@ export const notificacionesAPI = {
   limpiarLeidas: () => api.delete('/notificaciones/limpiar-leidas'),
 };
 
-// ============================================
-// PROFESORES (ADMIN)
-// ============================================
+// PROFESORES
 export const profesoresAPI = {
   getAll: () => api.get('/profesores'),
   create: (data) => api.post('/profesores', data),
@@ -145,9 +132,7 @@ export const profesoresAPI = {
   delete: (id) => api.delete(`/profesores/${id}`),
 };
 
-// ============================================
-// NIVELES (ADMIN)
-// ============================================
+// NIVELES
 export const nivelesAPI = {
   getAll: () => api.get('/niveles'),
   create: (data) => api.post('/niveles', data),
@@ -155,9 +140,7 @@ export const nivelesAPI = {
   delete: (id) => api.delete(`/niveles/${id}`),
 };
 
-// ============================================
-// PILETAS (ADMIN)
-// ============================================
+// PILETAS
 export const piletasAPI = {
   getAll: () => api.get('/piletas'),
   create: (data) => api.post('/piletas', data),
@@ -165,22 +148,19 @@ export const piletasAPI = {
   delete: (id) => api.delete(`/piletas/${id}`),
 };
 
-// ============================================
 // TURNOS ADMIN
-// ============================================
 export const turnosAdminAPI = {
   create: (data) => api.post('/turnos', data),
-  update: (id, data) => api.put(`/turnos/${id}`, data),       // editar completo
-  patch: (id, data) => api.patch(`/turnos/${id}`, data),      // ✅ toggle activo, cambios parciales
+  update: (id, data) => api.put(`/turnos/${id}`, data),
+  patch: (id, data) => api.patch(`/turnos/${id}`, data),
   delete: (id) => api.delete(`/turnos/${id}`),
-
   generarClases: (turnoId, payload) => api.post(`/turnos/${turnoId}/generar-clases`, payload),
   getClases: (turnoId) => api.get(`/turnos/${turnoId}/clases`),
 };
-export const exportsAPI = {
-  inscriptosTurnoExcel: (turnoId) =>
-    api.get(`/turnos/${turnoId}/inscriptos/excel`, { responseType: 'blob' }),
-};
 
+// EXPORTS
+export const exportsAPI = {
+  inscriptosTurnoExcel: (turnoId) => api.get(`/turnos/${turnoId}/inscriptos/excel`, { responseType: 'blob' }),
+};
 
 export default api;
